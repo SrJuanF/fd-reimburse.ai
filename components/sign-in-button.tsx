@@ -23,6 +23,7 @@ export function SignInButton() {
     <ConnectButton
       client={client}
       wallets={wallets}
+      chain={paymentChain}
       connectButton={{
         label: "Sign in",
       }}
