@@ -6,7 +6,7 @@ import {
   UIMessage,
 } from "ai";
 import { NextRequest } from "next/server";
-import { settlePayment, facilitator, verifyPayment } from "thirdweb/x402";
+import { settlePayment, facilitator, verifyPayment, PaymentArgs } from "thirdweb/x402";
 import { arbitrum } from "thirdweb/chains";
 import {
   serverClient,
@@ -19,31 +19,28 @@ const twFacilitator = facilitator({
   serverWalletAddress,
 });
 
-const usdcAsset = {
+const asset = {
   address: paymentToken.address as `0x${string}`,
-  decimals: 6,
-  eip712: {
-    name: "USD Coin",
-    version: "2",
-    primaryType: "Permit", // use permit based signatures for dynamic pricing
-  },
-} as const;
+};
 
 export async function POST(request: NextRequest) {
   const paymentData = request.headers.get("x-payment");
 
-  // verify the signed payment data with maximum payment amount before doing any work
-  const result = await verifyPayment({
+  const paymentArgs: PaymentArgs = {
     facilitator: twFacilitator,
     method: "POST",
     network: arbitrum,
+    scheme: "upto",
     price: {
       amount: (PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
-      asset: usdcAsset,
+      asset,
     },
     resourceUrl: request.url,
     paymentData,
-  });
+  }
+
+  // verify the signed payment data with maximum payment amount before doing any work
+  const result = await verifyPayment(paymentArgs);
 
   if (result.status !== 200) {
     return Response.json(result.responseBody, {
@@ -91,16 +88,11 @@ export async function POST(request: NextRequest) {
       // finally, settle the payment asynchronously after the stream is completed
       try {
         const result = await settlePayment({
-          facilitator: twFacilitator,
-          method: "POST",
-          network: arbitrum,
+          ...paymentArgs,
           price: {
             amount: finalPrice.toString(),
-            asset: usdcAsset,
+            asset,
           },
-          resourceUrl: request.url,
-          paymentData,
-          waitUntil: "confirmed",
         });
         console.log(`Payment result: ${JSON.stringify(result)}`);
       } catch (error) {
