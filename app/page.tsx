@@ -1,9 +1,11 @@
-import { Chat } from "@/components/chat";
+//import { Chat } from "@/components/chat";
+import ReceiptsUploader from "@/components/receipts-uploader";
 
 export default function Home() {
   return (
     <div className="flex flex-col size-full items-center">
-      <Chat />
+      {/*<Chat />*/}
+      <ReceiptsUploader />
     </div>
   );
 }
