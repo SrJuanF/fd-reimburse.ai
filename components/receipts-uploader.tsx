@@ -5,8 +5,12 @@ import { toast } from "sonner";
 import { SpinnerIcon } from "./icons";
 import { ArrowUpIcon } from "./icons";
 import Image from "next/image";
+import { wrapFetchWithPayment } from "thirdweb/x402";
+import { useActiveWallet } from "thirdweb/react";
+import { client } from "../lib/thirdweb.client";
 
 export default function ReceiptsUploader() {
+  const wallet = useActiveWallet();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -36,13 +40,23 @@ export default function ReceiptsUploader() {
       toast.error("Selecciona una imagen para subir");
       return;
     }
+    if (!wallet) {
+      toast.error("Inicia sesión con tu wallet para continuar");
+      return;
+    }
 
     try {
       setIsUploading(true);
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("http://localhost:3000/api/treasure/receipts", {
+      const fetchWithPayment = wrapFetchWithPayment(
+        fetch,
+        client,
+        wallet
+      ) as typeof globalThis.fetch;
+
+      const res = await fetchWithPayment("/api/chat", {
         method: "POST",
         body: formData,
       });
@@ -52,7 +66,9 @@ export default function ReceiptsUploader() {
         throw new Error(text || "Error al subir el recibo");
       }
 
-      toast.success("Recibo subido correctamente");
+      const text = await res.text();
+      toast.success("Auditoría completada");
+      console.log(text);
       setFile(null);
       setPreviewUrl(null);
     } catch (err: unknown) {

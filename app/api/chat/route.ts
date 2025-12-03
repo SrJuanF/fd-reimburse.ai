@@ -78,16 +78,27 @@ export async function POST(request: NextRequest) {
   const receiptAuditSystemPrompt =
     "You are a Receipt Vision Auditor. Analyze the provided receipt image and extract: merchant name, purchase date, currency, subtotal, taxes, fees, tip, total, payment method, and line items (description, quantity, unit price, line total). Validate totals (e.g., subtotal + taxes + fees + tip = total), identify anomalies (illegible fields, inconsistent tax rates, duplicated items, altered amounts, missing merchant/date), and provide a concise audit summary followed by a JSON block with keys: merchant, date, currency, subtotal, taxes, fees, tip, total, paymentMethod, items[], anomalies[]. If a field is uncertain, include it with null and note the uncertainty in anomalies.";
 
+  // Build content parts compatible with AI SDK 5
+  const contentParts: Array<
+    | { type: "text"; text: string }
+    | { type: "image"; image: URL | string }
+    | { type: "file"; data: Uint8Array; mediaType: string }
+  > = [{ type: "text", text: "Audit this receipt and report findings." }];
+
+  if (imagePart instanceof URL || typeof imagePart === "string") {
+    contentParts.push({ type: "image", image: imagePart });
+  } else if (imagePart instanceof Blob) {
+    const buffer = await imagePart.arrayBuffer();
+    contentParts.push({ type: "file", data: new Uint8Array(buffer), mediaType: imagePart.type });
+  }
+
   const stream = streamText({
     system: receiptAuditSystemPrompt,
     model: myProvider.languageModel("gpt-4o"),
     messages: [
       {
         role: "user",
-        content: [
-          { type: "text", text: "Audit this receipt and report findings." },
-          { type: "image", image: imagePart },
-        ],
+        content: contentParts,
       },
     ],
     onFinish: async (event) => {

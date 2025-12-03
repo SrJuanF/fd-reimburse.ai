@@ -23,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <ThirdwebProvider>
-      <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
         <body>
           <div className="fixed right-0 left-0 w-full top-0 bg-white dark:bg-zinc-950 mx-auto">
             <div className="flex justify-between items-center p-4">
