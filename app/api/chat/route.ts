@@ -1,10 +1,5 @@
-import { modelID, myProvider } from "@/lib/models";
-import {
-  convertToModelMessages,
-  smoothStream,
-  streamText,
-  UIMessage,
-} from "ai";
+import { myProvider } from "@/lib/models";
+import { streamText } from "ai";
 import { NextRequest } from "next/server";
 import { settlePayment, facilitator, verifyPayment, PaymentArgs } from "thirdweb/x402";
 import { arbitrum } from "thirdweb/chains";
@@ -49,32 +44,52 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // then, process the chat request and do the inference
-  const {
-    messages,
-    selectedModelId,
-  }: {
-    messages: Array<UIMessage>;
-    selectedModelId: modelID;
-  } = await request.json();
+  // Enforce image input: accept multipart/form-data (field: "file") or JSON (fields: "imageUrl" | "imageData")
+  let imagePart: Blob | URL | string | undefined;
+  const contentType = request.headers.get("content-type") || "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    const file = form.get("file") as File | null;
+    if (file && file.size > 0) {
+      imagePart = file;
+    }
+  } else {
+    try {
+      const body = await request.json().catch(() => ({}));
+      const { imageUrl, imageData } = body as { imageUrl?: string; imageData?: string };
+      if (imageUrl) {
+        imagePart = new URL(imageUrl);
+      } else if (imageData) {
+        imagePart = imageData; // expected data URL string: e.g. "data:image/png;base64,..."
+      }
+    } catch {
+      // ignore parse errors; handled below
+    }
+  }
+
+  if (!imagePart) {
+    return Response.json(
+      { error: "image_required", errorMessage: "Provide an image via multipart 'file' or JSON 'imageUrl'/'imageData'." },
+      { status: 400 }
+    );
+  }
+
+  const receiptAuditSystemPrompt =
+    "You are a Receipt Vision Auditor. Analyze the provided receipt image and extract: merchant name, purchase date, currency, subtotal, taxes, fees, tip, total, payment method, and line items (description, quantity, unit price, line total). Validate totals (e.g., subtotal + taxes + fees + tip = total), identify anomalies (illegible fields, inconsistent tax rates, duplicated items, altered amounts, missing merchant/date), and provide a concise audit summary followed by a JSON block with keys: merchant, date, currency, subtotal, taxes, fees, tip, total, paymentMethod, items[], anomalies[]. If a field is uncertain, include it with null and note the uncertainty in anomalies.";
 
   const stream = streamText({
-    system: "You are a helpful assistant.",
-    providerOptions: {
-      anthropic: {
-        thinking: { type: "enabled", budgetTokens: 12000 },
+    system: receiptAuditSystemPrompt,
+    model: myProvider.languageModel("gpt-4o"),
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Audit this receipt and report findings." },
+          { type: "image", image: imagePart },
+        ],
       },
-      openai: {
-        thinking: { type: "enabled", budgetTokens: 12000 },
-      },
-    },
-    model: myProvider.languageModel(selectedModelId),
-    experimental_transform: [
-      smoothStream({
-        chunking: "word",
-      }),
     ],
-    messages: convertToModelMessages(messages),
     onFinish: async (event) => {
       const totalTokens = event.totalUsage.totalTokens;
 
@@ -85,7 +100,6 @@ export async function POST(request: NextRequest) {
 
       const finalPrice = PRICE_PER_INFERENCE_TOKEN_WEI * totalTokens;
 
-      // finally, settle the payment asynchronously after the stream is completed
       try {
         const result = await settlePayment({
           ...paymentArgs,
@@ -102,9 +116,9 @@ export async function POST(request: NextRequest) {
   });
 
   return stream.toUIMessageStreamResponse({
-    sendReasoning: true,
+    sendReasoning: false,
     messageMetadata: ({ part }) => {
-      if (part.type === 'finish') {
+      if (part.type === "finish") {
         return {
           totalTokens: part.totalUsage.totalTokens,
         };
@@ -112,7 +126,7 @@ export async function POST(request: NextRequest) {
       return undefined;
     },
     onError: () => {
-      return `An error occurred, please try again!`;
+      return "An error occurred, please try again!";
     },
   });
 }
