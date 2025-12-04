@@ -16,26 +16,29 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const incomingForm = await request.formData();
   const incomingFile = incomingForm.get("file");
-  const outForm = new FormData();
-  if (incomingFile instanceof Blob) {
-    const filename = incomingFile instanceof File ? incomingFile.name : "file";
-    outForm.append("file", incomingFile, filename);
-  }
 
   const url = `${API_BASE_URL}/api/auditor`;
+  let body: unknown = {};
+  if (incomingFile instanceof Blob) {
+    const buf = Buffer.from(await (incomingFile as Blob).arrayBuffer());
+    const mime = (incomingFile as File).type || "application/octet-stream";
+    const dataUrl = `data:${mime};base64,${buf.toString("base64")}`;
+    body = { imageData: dataUrl };
+  }
+
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
-    )}&method=POST&asset=${
+    )}&method=POST&maxValue=500000&asset=${
       paymentToken.address
     }&chainId=eip155:${paymentChain.id}`,
     {
       method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
-      body: outForm,
+      body: JSON.stringify(body),
     }
   );
   //&maxValue=500000
