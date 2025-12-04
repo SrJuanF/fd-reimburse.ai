@@ -63,9 +63,6 @@ export default function ReceiptsUploader() {
       });*/
       const res = await fetch("/api/treasure/receipts", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: formData,
       });
 
@@ -78,7 +75,7 @@ export default function ReceiptsUploader() {
       setJsonResult(data);
       console.log(data);
       toast.success("Auditor completed");
-      
+
       setFile(null);
       setPreviewUrl(null);
     } catch (err: unknown) {
