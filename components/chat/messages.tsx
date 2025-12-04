@@ -5,7 +5,7 @@ import Markdown from "react-markdown";
 import { markdownComponents } from "./markdown-components";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDownIcon, ChevronUpIcon, SpinnerIcon } from "./icons";
+import { ChevronDownIcon, ChevronUpIcon, SpinnerIcon } from "../icons";
 import { UIMessage } from "ai";
 import { PRICE_PER_INFERENCE_TOKEN_WEI } from "@/lib/constants";
 

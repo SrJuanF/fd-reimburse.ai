@@ -7,7 +7,7 @@ import {
 } from "ai";
 import { NextRequest } from "next/server";
 import { settlePayment, facilitator, verifyPayment, PaymentArgs } from "thirdweb/x402";
-import { arbitrum } from "thirdweb/chains";
+import { avalancheFuji } from "thirdweb/chains";
 import {
   serverClient,
   serverWalletAddress,
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   const paymentArgs: PaymentArgs = {
     facilitator: twFacilitator,
     method: "POST",
-    network: arbitrum,
+    network: avalancheFuji,
     scheme: "upto",
     price: {
       amount: (PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
