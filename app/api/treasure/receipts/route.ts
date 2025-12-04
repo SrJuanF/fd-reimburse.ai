@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
-//import { wrapFetchWithPayment } from "thirdweb/x402";
-import {
-  serverCompanyWalletAddress,
-} from "@/lib/thirdweb.server";
+import { serverCompanyWalletAddress } from "@/lib/thirdweb.server";
 import { paymentToken, paymentChain, API_BASE_URL } from "@/lib/constants";
+//import { wrapFetchWithPayment } from "thirdweb/x402";
+/*const fetchWithPay = wrapFetchWithPayment(fetch, client, wallet);
+  const response = await fetchWithPay("/api/auditor");
+  const data = await response.json();
+  console.log(data);*/
 
 export const runtime = "nodejs";
 
@@ -12,26 +14,27 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  /*const fetchWithPay = wrapFetchWithPayment(fetch, client, wallet);
-  const response = await fetchWithPay("/api/auditor");
-  const data = await response.json();
-  console.log(data);*/
-
   const url = `${API_BASE_URL}/api/auditor`;
+  const incomingForm = await request.formData();
+  const incomingFile = incomingForm.get("file");
+  const outForm = new FormData();
+  if (incomingFile instanceof Blob) {
+    const filename = incomingFile instanceof File ? incomingFile.name : "file";
+    outForm.append("file", incomingFile, filename);
+  }
 
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
-    )}&method=GET&maxValue=500000&asset=${paymentToken.address}&chainId=eip155:${
-      paymentChain.id
-    }`,
+    )}&method=POST&maxValue=500000&asset=${
+      paymentToken.address
+    }&chainId=eip155:${paymentChain.id}`,
     {
       method: "POST",
       headers: {
-        "Content-Type": "*/*",
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
-      body: '{"key":"value"}',
+      body: outForm,
     }
   );
 

@@ -5,9 +5,9 @@ import { toast } from "sonner";
 import { SpinnerIcon } from "./icons";
 import { ArrowUpIcon } from "./icons";
 import Image from "next/image";
-import { wrapFetchWithPayment } from "thirdweb/x402";
+//import { wrapFetchWithPayment } from "thirdweb/x402";
+//import { client } from "../lib/thirdweb.client";
 import { useActiveWallet } from "thirdweb/react";
-import { client } from "../lib/thirdweb.client";
 
 export default function ReceiptsUploader() {
   const wallet = useActiveWallet();
@@ -52,13 +52,16 @@ export default function ReceiptsUploader() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const fetchWithPayment = wrapFetchWithPayment(
+      /*const fetchWithPayment = wrapFetchWithPayment(
         fetch,
         client,
         wallet
       ) as typeof globalThis.fetch;
-
-      /*const res = await fetchWithPayment("/api/chat", {
+      const res = await fetchWithPayment("/api/chat", {
+        method: "POST",
+        body: formData,
+      });*/
+      const res = await fetch("/api/treasure/receipts", {
         method: "POST",
         body: formData,
       });
@@ -70,16 +73,8 @@ export default function ReceiptsUploader() {
 
       const data = await res.json();
       setJsonResult(data);
-      toast.success("Auditoría completada");
-      console.log(text);*/
-      const res = await fetch("/api/treasure/receipts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await res.json();
-      console.log(data)
+      toast.success("Auditor completed");
+      console.log(data);
       setFile(null);
       setPreviewUrl(null);
     } catch (err: unknown) {
@@ -204,7 +199,7 @@ export default function ReceiptsUploader() {
             ) : null}
             <span>{isUploading ? "Uploading" : "Upload"}</span>
           </button>
-      </div>
+        </div>
       </div>
       {jsonResult !== null && (
         <div className="mt-6 w-full max-w-xl px-4">
