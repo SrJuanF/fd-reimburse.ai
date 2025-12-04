@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <ThirdwebProvider>
-      <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
         <body>
           <AppHeader />
           <Toaster position="top-center" />

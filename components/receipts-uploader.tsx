@@ -5,12 +5,12 @@ import { toast } from "sonner";
 import { SpinnerIcon } from "./icons";
 import { ArrowUpIcon } from "./icons";
 import Image from "next/image";
+import { wrapFetchWithPayment } from "thirdweb/x402";
+import { useActiveWallet } from "thirdweb/react";
+import { client } from "../lib/thirdweb.client";
 
-type Props = {
-  onUploaded?: () => void;
-};
-
-export default function ReceiptsUploader({ onUploaded }: Props) {
+export default function ReceiptsUploader() {
+  const wallet = useActiveWallet();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -37,7 +37,11 @@ export default function ReceiptsUploader({ onUploaded }: Props) {
 
   const onUpload = async () => {
     if (!file) {
-      toast.error("Select an image to upload");
+      toast.error("Selecciona una imagen para subir");
+      return;
+    }
+    if (!wallet) {
+      toast.error("Inicia sesión con tu wallet para continuar");
       return;
     }
 
@@ -46,7 +50,13 @@ export default function ReceiptsUploader({ onUploaded }: Props) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/treasure/receipts", {
+      const fetchWithPayment = wrapFetchWithPayment(
+        fetch,
+        client,
+        wallet
+      ) as typeof globalThis.fetch;
+
+      const res = await fetchWithPayment("/api/chat", {
         method: "POST",
         body: formData,
       });
@@ -56,7 +66,9 @@ export default function ReceiptsUploader({ onUploaded }: Props) {
         throw new Error(text || "Failed to upload receipt");
       }
 
-      toast.success("Receipt uploaded successfully");
+      const text = await res.text();
+      toast.success("Auditoría completada");
+      console.log(text);
       setFile(null);
       setPreviewUrl(null);
       onUploaded?.();
