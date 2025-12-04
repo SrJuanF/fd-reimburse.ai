@@ -15,6 +15,7 @@ export default function ReceiptsUploader() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [jsonResult, setJsonResult] = useState<unknown | null>(null);
 
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0] ?? null;
@@ -47,6 +48,7 @@ export default function ReceiptsUploader() {
 
     try {
       setIsUploading(true);
+      setJsonResult(null);
       const formData = new FormData();
       formData.append("file", file);
 
@@ -66,9 +68,9 @@ export default function ReceiptsUploader() {
         throw new Error(text || "Error al subir el recibo");
       }
 
-      const text = await res.text();
+      const data = await res.json();
+      setJsonResult(data);
       toast.success("Auditoría completada");
-      console.log(text);
       setFile(null);
       setPreviewUrl(null);
     } catch (err: unknown) {
@@ -174,8 +176,15 @@ export default function ReceiptsUploader() {
             ) : null}
             <span>{isUploading ? "Subiendo" : "Subir"}</span>
           </button>
-        </div>
       </div>
+      </div>
+      {jsonResult !== null && (
+        <div className="mt-6 w-full max-w-xl px-4">
+          <div className="p-4 rounded-2xl dark:bg-zinc-800 bg-zinc-100 text-sm whitespace-pre-wrap">
+            {JSON.stringify(jsonResult, null, 2)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
