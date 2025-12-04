@@ -69,14 +69,14 @@ export default function ReceiptsUploader() {
       const text = await res.text();
       toast.success("Auditoría completada");
       console.log(text);*/
-      const res = await fetch("/api/treasure", {
+      const res = await fetch("/api/treasure/receipts", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
       });
       const data = await res.json();
-      console.log(data);
+      console.log(data)
       setFile(null);
       setPreviewUrl(null);
     } catch (err: unknown) {

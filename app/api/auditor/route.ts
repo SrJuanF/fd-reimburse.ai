@@ -18,10 +18,10 @@ export async function GET(request: Request) {
   const paymentData = request.headers.get("x-payment");
 
   const result = await settlePayment({
-    resourceUrl: `${API_BASE_URL}/auditor`,
+    resourceUrl: `${API_BASE_URL}/api/auditor`,
     method: "GET",
     paymentData,
-    payTo: process.env.MERCHANT_WALLET_ADDRESS!,
+    payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
     network: avalancheFuji,
     price: {
       amount: "10000", // $0.01 USDC
