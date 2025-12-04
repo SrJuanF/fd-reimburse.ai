@@ -7,7 +7,7 @@ import {
   serverClient,
   serverAgentAWalletAddress,
 } from "@/lib/thirdweb.server";
-import { MAX_INFERENCE_TOKENS_PER_CALL, paymentToken, PRICE_PER_INFERENCE_TOKEN_WEI } from "@/lib/constants";
+import { MAX_INFERENCE_TOKENS_PER_CALL, paymentToken, PRICE_PER_INFERENCE_TOKEN_WEI, API_BASE_URL } from "@/lib/constants";
 
 const twFacilitator = facilitator({
   client: serverClient,
@@ -20,18 +20,19 @@ const asset = {
 
 export async function POST(request: NextRequest) {
   const paymentData = request.headers.get("x-payment");
-
+  console.log("API AUDITOR EJECTED");
   const paymentArgs: PaymentArgs = {
-    facilitator: twFacilitator,
+    resourceUrl: `${API_BASE_URL}/api/auditor`,
     method: "GET",
+    paymentData,
     network: avalancheFuji,
     scheme: "upto",
+    payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
     price: {
       amount: (PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
       asset,
     },
-    resourceUrl: request.url,
-    paymentData,
+    facilitator: twFacilitator,
   }
 
   // verify the signed payment data with maximum payment amount before doing any work
@@ -127,6 +128,7 @@ export async function POST(request: NextRequest) {
     try {
       const settle = await settlePayment({
         ...paymentArgs,
+        scheme: "exact",
         price: {
           amount: finalPrice.toString(),
           asset,

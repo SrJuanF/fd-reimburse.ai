@@ -14,7 +14,6 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const url = `${API_BASE_URL}/api/auditor`;
   const incomingForm = await request.formData();
   const incomingFile = incomingForm.get("file");
   const outForm = new FormData();
@@ -23,20 +22,23 @@ export async function POST(request: NextRequest) {
     outForm.append("file", incomingFile, filename);
   }
 
+  const url = `${API_BASE_URL}/api/auditor`;
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
-    )}&method=POST&maxValue=500000&asset=${
+    )}&method=POST&asset=${
       paymentToken.address
     }&chainId=eip155:${paymentChain.id}`,
     {
       method: "POST",
       headers: {
+        'Content-Type': 'application/json',
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
       body: outForm,
     }
   );
+  //&maxValue=500000
 
   const contentType = response.headers.get("content-type") || "";
   let data: unknown;
@@ -52,5 +54,7 @@ export async function POST(request: NextRequest) {
     data = { parseError: String(err), text, status: response.status };
   }
 
-  return Response.json({ ok: response.ok, status: response.status, data });
+  console.log(data);
+
+  return Response.json({ ok: true, data });
 }
