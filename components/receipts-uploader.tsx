@@ -71,7 +71,6 @@ export default function ReceiptsUploader() {
       console.log(text);
       setFile(null);
       setPreviewUrl(null);
-      onUploaded?.();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       toast.error(message);
