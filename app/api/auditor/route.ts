@@ -7,7 +7,7 @@ import {
   serverClient,
   serverAgentAWalletAddress,
 } from "@/lib/thirdweb.server";
-import { MAX_INFERENCE_TOKENS_PER_CALL, paymentToken, PRICE_PER_INFERENCE_TOKEN_WEI } from "../../../lib/constants";
+import { MAX_INFERENCE_TOKENS_PER_CALL, paymentToken, PRICE_PER_INFERENCE_TOKEN_WEI } from "@/lib/constants";
 
 const twFacilitator = facilitator({
   client: serverClient,
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
   const paymentArgs: PaymentArgs = {
     facilitator: twFacilitator,
-    method: "POST",
+    method: "GET",
     network: avalancheFuji,
     scheme: "upto",
     price: {
@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
     console.error("Token usage data not available");
   } else {
     const finalPrice = PRICE_PER_INFERENCE_TOKEN_WEI * totalTokens;
+    console.log("TotalTokens:", totalTokens, "FinalPrice:", finalPrice);
     try {
       const settle = await settlePayment({
         ...paymentArgs,

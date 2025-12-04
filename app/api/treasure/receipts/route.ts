@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
-    )}&method=POST&maxValue=500000&asset=${
+    )}&method=GET&maxValue=500000&asset=${
       paymentToken.address
     }&chainId=eip155:${paymentChain.id}`,
     {
