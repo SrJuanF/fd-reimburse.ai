@@ -56,7 +56,7 @@ export default function ReceiptsUploader() {
         wallet
       ) as typeof globalThis.fetch;
 
-      const res = await fetchWithPayment("/api/chat", {
+      /*const res = await fetchWithPayment("/api/chat", {
         method: "POST",
         body: formData,
       });
@@ -68,7 +68,15 @@ export default function ReceiptsUploader() {
 
       const text = await res.text();
       toast.success("Auditoría completada");
-      console.log(text);
+      console.log(text);*/
+      const res = await fetch("/api/treasure", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      console.log(data);
       setFile(null);
       setPreviewUrl(null);
     } catch (err: unknown) {

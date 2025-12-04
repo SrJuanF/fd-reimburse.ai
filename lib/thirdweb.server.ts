@@ -10,7 +10,7 @@ export const serverClient = createThirdwebClient({
   secretKey: process.env.THIRDWEB_SECRET_KEY!,
 });
 
-export const serverAccount = Engine.serverWallet({
+export const serverCompanyAccount = Engine.serverWallet({
   client: serverClient,
   address: serverCompanyWalletAddress,
   chain: paymentChain,
