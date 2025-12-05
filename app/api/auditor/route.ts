@@ -19,31 +19,7 @@ const asset = {
 };
 
 export async function POST(request: NextRequest) {
-  const paymentData = request.headers.get("x-payment");
-  const paymentArgs = {
-    resourceUrl: `${API_BASE_URL}/api/auditor`,
-    method: "GET",
-    paymentData,
-    network: avalancheFuji,
-    //scheme: "upto",
-    payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
-    /*price: {
-      amount: (PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
-      asset,
-    },*/
-    facilitator: twFacilitator,
-  }
-
-  // verify the signed payment data with maximum payment amount before doing any work
-  /*const verification = await verifyPayment(paymentArgs);
-
-  if (verification.status !== 200) {
-    return Response.json(verification.responseBody, {
-      status: verification.status,
-      headers: verification.responseHeaders,
-    });
-  }*/
-
+  //IMAGE PRE-PROCESSING
   // Enforce image input: accept multipart/form-data (field: "file") or JSON (fields: "imageUrl" | "imageData")
   let imagePart: Blob | URL | string | undefined;
   const contentType = request.headers.get("content-type") || "";
@@ -74,10 +50,6 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
-
-  const receiptAuditSystemPrompt =
-    "You are a Receipt Vision Auditor. Analyze the provided receipt image and extract: merchant name, purchase date, currency, subtotal, taxes, fees, tip, total, payment method, and line items (description, quantity, unit price, line total). Validate totals (e.g., subtotal + taxes + fees + tip = total), identify anomalies (illegible fields, inconsistent tax rates, duplicated items, altered amounts, missing merchant/date), and provide a concise audit summary followed by a JSON block with keys: merchant, date, currency, subtotal, taxes, fees, tip, total, paymentMethod, items[], anomalies[]. If a field is uncertain, include it with null and note the uncertainty in anomalies. Additionally, apply this hackathon reimbursement policy: a receipt is valid if the total is under 100 USD and the purchase date is in the year 2025. In the JSON, include reimbursementValid (boolean) and decisionReason (string) explaining the decision strictly based on this policy.";
-
   // Build content parts compatible with AI SDK 5
   const contentParts: Array<
     | { type: "text"; text: string }
@@ -91,6 +63,10 @@ export async function POST(request: NextRequest) {
     const buffer = await imagePart.arrayBuffer();
     contentParts.push({ type: "file", data: new Uint8Array(buffer), mediaType: imagePart.type });
   }
+
+  //AGENT IMAGE-PROCESSING
+  const receiptAuditSystemPrompt =
+    "You are a Receipt Vision Auditor. Analyze the provided receipt image and extract: merchant name, purchase date, currency, subtotal, taxes, fees, tip, total, payment method, and line items (description, quantity, unit price, line total). Validate totals (e.g., subtotal + taxes + fees + tip = total), identify anomalies (illegible fields, inconsistent tax rates, duplicated items, altered amounts, missing merchant/date), and provide a concise audit summary followed by a JSON block with keys: merchant, date, currency, subtotal, taxes, fees, tip, total, paymentMethod, items[], anomalies[]. If a field is uncertain, include it with null and note the uncertainty in anomalies. Additionally, apply this hackathon reimbursement policy: a receipt is valid if the total is under 100 USD and the purchase date is in the year 2025. In the JSON, include reimbursementValid (boolean) and decisionReason (string) explaining the decision strictly based on this policy.";
 
   const result = await generateText({
     system: receiptAuditSystemPrompt,
@@ -117,30 +93,57 @@ export async function POST(request: NextRequest) {
   } catch {
     console.error("Failed to parse JSON from model output");
   }
-
   const totalTokens = result.usage?.totalTokens;
+
+  // PAYMENT 
+  const paymentData = request.headers.get("x-payment");
+  const paymentArgs = {
+    resourceUrl: `${API_BASE_URL}/api/auditor`,
+    method: "GET",
+    paymentData,
+    network: avalancheFuji,
+    //scheme: "upto",
+    payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
+    /*price: {
+      amount: (PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
+      asset,
+    },*/
+    facilitator: twFacilitator,
+  }
+
+  // verify the signed payment data with maximum payment amount before doing any work
+  /*const verification = await verifyPayment(paymentArgs);
+
+  if (verification.status !== 200) {
+    return Response.json(verification.responseBody, {
+      status: verification.status,
+      headers: verification.responseHeaders,
+    });
+  }*/
+  let settle;
   if (!totalTokens) {
     console.error("Token usage data not available");
   } else {
     const finalPrice = PRICE_PER_INFERENCE_TOKEN_WEI * totalTokens;
     console.log("TotalTokens:", totalTokens, "FinalPrice:", finalPrice);
     try {
-      const settle = await settlePayment({
+      settle = await settlePayment({
         ...paymentArgs,
         //scheme: "exact",
         price: {
           amount: finalPrice.toString(),
           asset,
         },
+        waitUntil: "confirmed",
       });
-      console.log(`Payment result: ${JSON.stringify(settle)}`);
+      console.log(`Payment result: ${settle.responseHeaders}`);
     } catch (error) {
       console.error("Payment settlement failed:", error);
     }
   }
 
-  if (json) {
+  if (json && settle?.status === 200) {
     return Response.json(json, { status: 200 });
   }
-  return Response.json({ raw }, { status: 200 });
+  return Response.json({ message: "Payment settlement failed", raw }, { status: 400 });
 }
