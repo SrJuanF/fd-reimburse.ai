@@ -5,7 +5,7 @@ import Image from "next/image";
 import { SignInButton } from "./sign-in-button";
 
 export default function AppHeader() {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL!;
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/";
   return (
     <div className="fixed right-0 left-0 w-full top-0 bg-white dark:bg-zinc-950 mx-auto">
       <div className="flex justify-between items-center p-4">
