@@ -60,16 +60,16 @@ export async function POST(request: NextRequest) {
 
   let reimburseData = false;
 
-  if(data && response.status === 200){
+  if (data && response.status === 200) {
     const urlReimburse = `${API_BASE_URL}/api/treasure`;
-    
+
     const reimburseResponse = await fetch(urlReimburse, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
-      body: JSON.stringify("address: 0x000000000"),
+      body: JSON.stringify({ address: "0x0000000000000000000000000000000000000000" }),
     });
     reimburseData = await reimburseResponse.json();
     console.log(reimburseData);

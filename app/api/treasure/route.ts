@@ -13,6 +13,12 @@ export async function POST(request: NextRequest) {
   if (!incomingSecret || incomingSecret !== process.env.THIRDWEB_SECRET_KEY) {
     return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
+  const body = await request.json().catch(() => ({}));
+  const address = typeof body?.address === "string" ? body.address : undefined;
+  const recipient =
+    address && address.startsWith("0x") && address.length === 42
+      ? address
+      : serverAgentAWalletAddress;
 
   // 1. Obtén el contrato USDC
   const usdcContract = getContract({
@@ -25,7 +31,7 @@ export async function POST(request: NextRequest) {
   const transaction = transfer({
     contract: usdcContract,
     to: serverAgentAWalletAddress,
-    amount: 0.01, // puedes usar string o number, la extensión maneja los decimales
+    amount: 0.01,
   });
 
   // 3. Envía la transacción
