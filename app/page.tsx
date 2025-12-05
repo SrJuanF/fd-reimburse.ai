@@ -1,5 +1,5 @@
 "use client";
-import ReceiptsUploader from "@/components/receipts-uploader";
+import DashboardSwitcher from "@/components/dashboard-switcher";
 import { SignInButton } from "@/components/sign-in-button";
 import { useActiveAccount } from "thirdweb/react";
 import { ALLOWED_WALLETS } from "@/lib/whitelist";
@@ -32,7 +32,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col size-full items-center">
-      <ReceiptsUploader />
+      <DashboardSwitcher />
     </div>
   );
 }

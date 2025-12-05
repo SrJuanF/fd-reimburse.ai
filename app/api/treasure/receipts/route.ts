@@ -16,6 +16,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const incomingForm = await request.formData();
   const incomingFile = incomingForm.get("file");
+  const incomingAddress = incomingForm.get("employee");
 
   const url = `${API_BASE_URL}/api/auditor`;
   let body: unknown = {};
@@ -69,7 +70,10 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
-      body: JSON.stringify({ address: "0x0000000000000000000000000000000000000000" }),
+      body: JSON.stringify({
+        employee:
+          typeof incomingAddress === "string" ? incomingAddress : undefined,
+      }),
     });
     reimburseData = await reimburseResponse.json();
     console.log(reimburseData);

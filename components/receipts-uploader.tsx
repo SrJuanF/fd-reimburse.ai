@@ -7,10 +7,15 @@ import { ArrowUpIcon } from "./icons";
 import Image from "next/image";
 //import { wrapFetchWithPayment } from "thirdweb/x402";
 //import { client } from "../lib/thirdweb.client";
-import { useActiveWallet } from "thirdweb/react";
+import { useActiveAccount } from "thirdweb/react";
 
-export default function ReceiptsUploader() {
-  const wallet = useActiveWallet();
+export default function ReceiptsUploader({
+  onUploaded,
+}: {
+  onUploaded?: () => void;
+}) {
+  const activeAccount = useActiveAccount();
+  const addr = activeAccount?.address?.toLowerCase();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -38,11 +43,11 @@ export default function ReceiptsUploader() {
 
   const onUpload = async () => {
     if (!file) {
-      toast.error("Selecciona una imagen para subir");
+      toast.error("Select an image to upload");
       return;
     }
-    if (!wallet) {
-      toast.error("Inicia sesión con tu wallet para continuar");
+    if (!addr) {
+      toast.error("Sign in with your wallet to continue");
       return;
     }
 
@@ -51,6 +56,7 @@ export default function ReceiptsUploader() {
       setJsonResult(null);
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("employee", addr);
 
       /*const fetchWithPayment = wrapFetchWithPayment(
         fetch,
@@ -78,6 +84,7 @@ export default function ReceiptsUploader() {
 
       setFile(null);
       setPreviewUrl(null);
+      onUploaded?.();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       toast.error(message);
