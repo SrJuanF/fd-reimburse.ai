@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (json) {
-    return Response.json(json);
+    return Response.json(json, { status: 200 });
   }
   return Response.json({ raw }, { status: 200 });
 }

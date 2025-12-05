@@ -9,6 +9,11 @@ import {
 import { paymentChain, paymentToken } from "@/lib/constants";
 
 export async function POST(request: NextRequest) {
+  const incomingSecret = request.headers.get("x-secret-key");
+  if (!incomingSecret || incomingSecret !== process.env.THIRDWEB_SECRET_KEY) {
+    return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
   // 1. Obtén el contrato USDC
   const usdcContract = getContract({
     client: serverClient,
@@ -45,7 +50,6 @@ export async function POST(request: NextRequest) {
     transactionHash,
     executionResult,
   });
-
 }
 
 export async function GET() {

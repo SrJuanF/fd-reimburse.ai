@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     }
   );
-  //&maxValue=500000
 
   const contentType = response.headers.get("content-type") || "";
   let data: unknown;
@@ -59,5 +58,22 @@ export async function POST(request: NextRequest) {
 
   console.log(data);
 
-  return Response.json({ ok: true, data });
+  let reimburseData = false;
+
+  if(data && response.status === 200){
+    const urlReimburse = `${API_BASE_URL}/api/treasure`;
+    
+    const reimburseResponse = await fetch(urlReimburse, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
+      },
+      body: JSON.stringify("address: 0x000000000"),
+    });
+    reimburseData = await reimburseResponse.json();
+    console.log(reimburseData);
+  }
+
+  return Response.json({ ok: true, data, reimburseData });
 }
