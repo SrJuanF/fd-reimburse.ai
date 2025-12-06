@@ -67,7 +67,9 @@ export async function POST(request: NextRequest) {
     body: JSON.stringify(body),
   });
 
-  const contentType = auditorResponse.headers.get("content-type") || "";
+  let data = await auditorResponse.json();
+
+  /*const contentType = auditorResponse.headers.get("content-type") || "";
   let data: unknown;
   try {
     if (contentType.includes("application/json")) {
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const text = await auditorResponse.text().catch(() => "");
     data = { parseError: String(err), text, status: auditorResponse.status };
-  }
+  }*/
 
   let reimburseData = false;
 
