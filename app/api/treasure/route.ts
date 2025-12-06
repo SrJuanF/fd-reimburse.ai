@@ -4,7 +4,6 @@ import { transfer } from "thirdweb/extensions/erc20";
 import {
   serverClient,
   serverCompanyAccount,
-  serverAgentAWalletAddress,
 } from "@/lib/thirdweb.server";
 import { paymentChain, paymentToken } from "@/lib/constants";
 

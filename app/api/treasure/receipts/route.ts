@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { serverCompanyWalletAddress } from "@/lib/thirdweb.server";
-import { paymentToken, paymentChain, API_BASE_URL } from "@/lib/constants";
+import { paymentToken, paymentChain, API_BASE_URL, AUDIT_FIXED_PRICE_WEI } from "@/lib/constants";
 //import { wrapFetchWithPayment } from "thirdweb/x402";
 /*const fetchWithPay = wrapFetchWithPayment(fetch, client, wallet);
   const response = await fetchWithPay("/api/auditor");
@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
   const incomingFile = incomingForm.get("file");
   const incomingAddress = incomingForm.get("employee");
 
-  const url = `${API_BASE_URL}/api/auditor`;
+  const baseUrl = (API_BASE_URL || "").replace(/[:/]+$/, "");
+  const url = `${baseUrl}/api/auditor`;
   let body: unknown = {};
   if (incomingFile instanceof Blob) {
     const buf = Buffer.from(await (incomingFile as Blob).arrayBuffer());
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
-    )}&method=POST&maxValue=500000&asset=${
+    )}&method=POST&maxValue=${AUDIT_FIXED_PRICE_WEI}&asset=${
       paymentToken.address
     }&chainId=eip155:${paymentChain.id}`,
     {
@@ -59,6 +60,10 @@ export async function POST(request: NextRequest) {
 
   console.log(data);
 
+  if (response.status !== 200) {
+    return Response.json({ ok: false, data }, { status: response.status });
+  }
+
   let reimburseData = false;
 
   if (data && response.status === 200) {
@@ -77,6 +82,10 @@ export async function POST(request: NextRequest) {
     });
     reimburseData = await reimburseResponse.json();
     console.log(reimburseData);
+  }
+
+  if (response.status !== 200) {
+    return Response.json({ ok: false, data }, { status: response.status });
   }
 
   return Response.json({ ok: true, data, reimburseData });

@@ -1,13 +1,16 @@
 import { myProvider } from "@/lib/models";
 import { generateText } from "ai";
 import { NextRequest } from "next/server";
-import { settlePayment, facilitator, verifyPayment, PaymentArgs } from "thirdweb/x402";
+import { settlePayment, facilitator, verifyPayment } from "thirdweb/x402";
+import { getContract } from "thirdweb";
+import { balanceOf } from "thirdweb/extensions/erc20";
 import { avalancheFuji } from "thirdweb/chains";
 import {
   serverClient,
   serverAgentAWalletAddress,
 } from "@/lib/thirdweb.server";
-import { MAX_INFERENCE_TOKENS_PER_CALL, paymentToken, PRICE_PER_INFERENCE_TOKEN_WEI, API_BASE_URL } from "@/lib/constants";
+import { paymentToken, API_BASE_URL, paymentChain, AUDIT_FIXED_PRICE_WEI } from "@/lib/constants";
+import { serverCompanyWalletAddress } from "@/lib/thirdweb.server";
 
 const twFacilitator = facilitator({
   client: serverClient,
@@ -49,6 +52,45 @@ export async function POST(request: NextRequest) {
       { error: "image_required", errorMessage: "Provide an image via multipart 'file' or JSON 'imageUrl'/'imageData'." },
       { status: 400 }
     );
+  }
+
+  const paymentData = request.headers.get("x-payment");
+  const baseUrl = (API_BASE_URL || "").replace(/[:/]+$/, "");
+  const paymentArgs = {
+    resourceUrl: `${baseUrl}/api/auditor`,
+    method: "POST",
+    paymentData,
+    network: avalancheFuji,
+    payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
+    price: {
+      amount: AUDIT_FIXED_PRICE_WEI.toString(),
+      asset,
+    },
+    facilitator: twFacilitator,
+  };
+
+  if (!paymentData) {
+    return Response.json({ message: "payment_required" }, { status: 402 });
+  }
+
+  const verification = await verifyPayment(paymentArgs);
+
+  if (verification.status !== 200) {
+    return Response.json(verification.responseBody, {
+      status: verification.status,
+      headers: verification.responseHeaders,
+    });
+  }
+
+  const usdcContract = getContract({
+    client: serverClient,
+    address: paymentToken.address,
+    chain: paymentChain,
+  });
+  const companyBalance = await balanceOf({ contract: usdcContract, address: serverCompanyWalletAddress });
+  const minRequired = AUDIT_FIXED_PRICE_WEI;
+  if (companyBalance < minRequired) {
+    return Response.json({ message: "payment_required" }, { status: 402 });
   }
   // Build content parts compatible with AI SDK 5
   const contentParts: Array<
@@ -95,55 +137,24 @@ export async function POST(request: NextRequest) {
   }
   const totalTokens = result.usage?.totalTokens;
 
-  // PAYMENT 
-  const paymentData = request.headers.get("x-payment");
-  const paymentArgs = {
-    resourceUrl: `${API_BASE_URL}/api/auditor`,
-    method: "GET",
-    paymentData,
-    network: avalancheFuji,
-    //scheme: "upto",
-    payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
-    /*price: {
-      amount: (PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
-      asset,
-    },*/
-    facilitator: twFacilitator,
-  }
-
-  // verify the signed payment data with maximum payment amount before doing any work
-  /*const verification = await verifyPayment(paymentArgs);
-
-  if (verification.status !== 200) {
-    return Response.json(verification.responseBody, {
-      status: verification.status,
-      headers: verification.responseHeaders,
-    });
-  }*/
   let settle;
-  if (!totalTokens) {
-    console.error("Token usage data not available");
-  } else {
-    const finalPrice = PRICE_PER_INFERENCE_TOKEN_WEI * totalTokens;
+  {
+    const finalPrice = AUDIT_FIXED_PRICE_WEI;
     console.log("TotalTokens:", totalTokens, "FinalPrice:", finalPrice);
-    try {
-      settle = await settlePayment({
-        ...paymentArgs,
-        //scheme: "exact",
-        price: {
-          amount: finalPrice.toString(),
-          asset,
-        },
-        waitUntil: "confirmed",
-      });
-      console.log(`Payment result: ${settle.responseHeaders}`);
-    } catch (error) {
-      console.error("Payment settlement failed:", error);
-    }
+    settle = await settlePayment({
+      ...paymentArgs,
+      scheme: "exact",
+      price: {
+        amount: finalPrice.toString(),
+        asset,
+      },
+      waitUntil: "confirmed",
+    });
+    console.log(`Payment result: ${settle.responseHeaders}`);
   }
 
   if (json && settle?.status === 200) {
     return Response.json(json, { status: 200 });
   }
-  return Response.json({ message: "Payment settlement failed", raw }, { status: 400 });
+  return Response.json({ message: "payment_required", raw }, { status: 402 });
 }
