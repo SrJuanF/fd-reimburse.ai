@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const incomingForm = await request.formData();
   const incomingFile = incomingForm.get("file");
-  const incomingAddress = incomingForm.get("address");
+  const incomingAddress = incomingForm.get("employee");
 
   const url = `${API_BASE_URL}/api/auditor`;
   let body: unknown = {};
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
-    )}&method=POST&asset=${paymentToken.address}&chainId=eip155:${
+    )}&method=POST&maxValue=500000&asset=${paymentToken.address}&chainId=eip155:${
       paymentChain.id
     }`,
     {
