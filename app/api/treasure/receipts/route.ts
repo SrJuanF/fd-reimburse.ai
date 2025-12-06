@@ -38,16 +38,16 @@ export async function POST(request: NextRequest) {
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
-    )}&method=POST&asset=${
-      paymentToken.address
-    }&chainId=${paymentChain.id}`,
+    )}&method=POST&asset=${paymentToken.address}&chainId=${
+      paymentChain.id
+    }&scheme=upto`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
-      //body: JSON.stringify(body),
+      // body: JSON.stringify(body),
     }
   );
   // 2. Extract the X-PAYMENT value
@@ -90,7 +90,6 @@ export async function POST(request: NextRequest) {
     const text = await auditorResponse.text().catch(() => "");
     data = { parseError: String(err), text, status: auditorResponse.status };
   }
-
 
   let reimburseData = false;
 
