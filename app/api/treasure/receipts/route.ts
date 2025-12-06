@@ -69,20 +69,6 @@ export async function POST(request: NextRequest) {
 
   let data = await auditorResponse.json();
 
-  /*const contentType = auditorResponse.headers.get("content-type") || "";
-  let data: unknown;
-  try {
-    if (contentType.includes("application/json")) {
-      data = await auditorResponse.json();
-    } else {
-      const text = await auditorResponse.text();
-      data = { text };
-    }
-  } catch (err) {
-    const text = await auditorResponse.text().catch(() => "");
-    data = { parseError: String(err), text, status: auditorResponse.status };
-  }*/
-
   let reimburseData = false;
 
   if (data && response.status === 200) {

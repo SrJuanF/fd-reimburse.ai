@@ -35,10 +35,10 @@ export async function POST(request: NextRequest) {
     method: "POST",
     paymentData,
     network: paymentChain,
-    scheme: "upto",
+    scheme: "exact",
     payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
     price: {
-      amount: (PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
+      amount: '0.005',//(PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
       asset,
     },
     facilitator: twFacilitator,
