@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
   // 1. Get the X-PAYMENT value
   const response = await fetch(
-  `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(url)}&method=POST&asset=${paymentToken.address}&chainId=eip155:${paymentChain.id}`,
+  `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(url)}&method=POST&maxValue=10000&asset=${paymentToken.address}&chainId=eip155:${paymentChain.id}`,
   {
     method: "POST",
     headers: {
