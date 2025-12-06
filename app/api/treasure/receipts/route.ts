@@ -36,20 +36,19 @@ export async function POST(request: NextRequest) {
 
   // 1. Get the X-PAYMENT value
   const response = await fetch(
-    `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
-      url
-    )}&method=POST&asset=${paymentToken.address}&chainId=eip155:${
-      paymentChain.id
-    }&scheme=upto`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
-      },
-      // body: JSON.stringify(body),
-    }
-  );
+  `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(url)}&method=POST&asset=${paymentToken.address}&chainId=eip155:${paymentChain.id}`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
+    },
+    body: JSON.stringify({
+      scheme: "upto",
+      // ...any other required fields
+    }),
+  },
+);
   // 2. Extract the X-PAYMENT value
   const xPayment = response.headers.get("x-payment"); // or from response body if not in headers
 
