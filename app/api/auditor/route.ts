@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   // PRE-PAYMENT
   const paymentData = request.headers.get("x-payment");
   const paymentArgs: PaymentArgs = {
-    resourceUrl: `${API_BASE_URL}/api/auditor`,
+    resourceUrl: request.url, //`${API_BASE_URL}/api/auditor`,
     method: "POST",
     paymentData,
     network: paymentChain,

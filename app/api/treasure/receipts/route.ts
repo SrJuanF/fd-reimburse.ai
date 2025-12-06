@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const incomingForm = await request.formData();
   const incomingFile = incomingForm.get("file");
-  const incomingAddress = incomingForm.get("employee");
+  const incomingAddress = incomingForm.get("address");
 
   const url = `${API_BASE_URL}/api/auditor`;
   let body: unknown = {};
@@ -36,42 +36,33 @@ export async function POST(request: NextRequest) {
 
   // 1. Get the X-PAYMENT value
   const response = await fetch(
-  `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(url)}&method=POST&maxValue=10000&asset=${paymentToken.address}&chainId=eip155:${paymentChain.id}`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
-    },
-    body: JSON.stringify({
-      scheme: "upto",
-      // ...any other required fields
-    }),
-  },
-);
-  // 2. Extract the X-PAYMENT value
-  const xPayment = response.headers.get("x-payment"); // or from response body if not in headers
-
-  const contentTypeX = response.headers.get("content-type") || "";
-  let dataX: unknown;
-  try {
-    if (contentTypeX.includes("application/json")) {
-      dataX = await response.json();
-    } else {
-      const text = await response.text();
-      dataX = { text };
+    `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
+      url
+    )}&method=POST&asset=${paymentToken.address}&chainId=eip155:${
+      paymentChain.id
+    }`,
+    {
+      method: "POST",
+      headers: {
+        //"Content-Type": "application/json",
+        "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
+      },
+      /*body: JSON.stringify({
+        scheme: "upto",
+        // ...any other required fields
+      }),*/
     }
-  } catch (err) {
-    const text = await response.text().catch(() => "");
-    dataX = { parseError: String(err), text, status: response.status };
-  }
+  );
+  // 2. Extract the X-PAYMENT value
+  const xPayment = response.headers.get("x-payment") || ""; // or from response body if not in headers
+  const dataX = await response.json();
 
   // 3. Call your API with the X-PAYMENT header
   const auditorResponse = await fetch(`${API_BASE_URL}/api/auditor`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(xPayment ? { "x-payment": xPayment } : {}),
+      ...(dataX ? { "x-payment": dataX } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -102,7 +93,7 @@ export async function POST(request: NextRequest) {
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
       body: JSON.stringify({
-        employee:
+        address:
           typeof incomingAddress === "string" ? incomingAddress : undefined,
       }),
     });
