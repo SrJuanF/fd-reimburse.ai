@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
   );
   // 2. Extract the X-PAYMENT value
   const xPayment = response.headers.get("x-payment"); // or from response body if not in headers
-
+  console.log(xPayment);
   // 3. Call your API with the X-PAYMENT header
   const auditorResponse = await fetch(`${API_BASE_URL}/api/auditor`, {
     method: "POST",
@@ -92,5 +92,5 @@ export async function POST(request: NextRequest) {
     console.log(reimburseData);
   }
 
-  return Response.json({ ok: true, data, reimburseData });
+  return Response.json({ ok: true, data, reimburseData, xPayment });
 }
