@@ -1,13 +1,21 @@
 import { myProvider } from "@/lib/models";
 import { generateText } from "ai";
 import { NextRequest } from "next/server";
-import { settlePayment, facilitator, verifyPayment, PaymentArgs } from "thirdweb/x402";
-import { avalancheFuji } from "thirdweb/chains";
 import {
-  serverClient,
-  serverAgentAWalletAddress,
-} from "@/lib/thirdweb.server";
-import { MAX_INFERENCE_TOKENS_PER_CALL, paymentToken, PRICE_PER_INFERENCE_TOKEN_WEI, API_BASE_URL } from "@/lib/constants";
+  settlePayment,
+  facilitator,
+  verifyPayment,
+  PaymentArgs,
+} from "thirdweb/x402";
+import { avalancheFuji } from "thirdweb/chains";
+import { serverClient, serverAgentAWalletAddress } from "@/lib/thirdweb.server";
+import {
+  MAX_INFERENCE_TOKENS_PER_CALL,
+  paymentToken,
+  PRICE_PER_INFERENCE_TOKEN_WEI,
+  API_BASE_URL,
+} from "@/lib/constants";
+import { type SettlePaymentResult } from "thirdweb/x402";
 
 const twFacilitator = facilitator({
   client: serverClient,
@@ -33,7 +41,10 @@ export async function POST(request: NextRequest) {
   } else {
     try {
       const body = await request.json().catch(() => ({}));
-      const { imageUrl, imageData } = body as { imageUrl?: string; imageData?: string };
+      const { imageUrl, imageData } = body as {
+        imageUrl?: string;
+        imageData?: string;
+      };
       if (imageUrl) {
         imagePart = new URL(imageUrl);
       } else if (imageData) {
@@ -46,7 +57,11 @@ export async function POST(request: NextRequest) {
 
   if (!imagePart) {
     return Response.json(
-      { error: "image_required", errorMessage: "Provide an image via multipart 'file' or JSON 'imageUrl'/'imageData'." },
+      {
+        error: "image_required",
+        errorMessage:
+          "Provide an image via multipart 'file' or JSON 'imageUrl'/'imageData'.",
+      },
       { status: 400 }
     );
   }
@@ -61,7 +76,11 @@ export async function POST(request: NextRequest) {
     contentParts.push({ type: "image", image: imagePart });
   } else if (imagePart instanceof Blob) {
     const buffer = await imagePart.arrayBuffer();
-    contentParts.push({ type: "file", data: new Uint8Array(buffer), mediaType: imagePart.type });
+    contentParts.push({
+      type: "file",
+      data: new Uint8Array(buffer),
+      mediaType: imagePart.type,
+    });
   }
 
   //AGENT IMAGE-PROCESSING
@@ -81,11 +100,13 @@ export async function POST(request: NextRequest) {
 
   const raw = result.text ?? "";
   const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const blob = fence?.[1] ?? (() => {
-    const s = raw.indexOf("{");
-    const e = raw.lastIndexOf("}");
-    return s !== -1 && e !== -1 && e > s ? raw.slice(s, e + 1) : "";
-  })();
+  const blob =
+    fence?.[1] ??
+    (() => {
+      const s = raw.indexOf("{");
+      const e = raw.lastIndexOf("}");
+      return s !== -1 && e !== -1 && e > s ? raw.slice(s, e + 1) : "";
+    })();
 
   let json: unknown = null;
   try {
@@ -95,7 +116,7 @@ export async function POST(request: NextRequest) {
   }
   const totalTokens = result.usage?.totalTokens;
 
-  // PAYMENT 
+  // PAYMENT
   const paymentData = request.headers.get("x-payment");
   const paymentArgs = {
     resourceUrl: `${API_BASE_URL}/api/auditor`,
@@ -109,7 +130,7 @@ export async function POST(request: NextRequest) {
       asset,
     },*/
     facilitator: twFacilitator,
-  }
+  };
 
   // verify the signed payment data with maximum payment amount before doing any work
   /*const verification = await verifyPayment(paymentArgs);
@@ -120,7 +141,7 @@ export async function POST(request: NextRequest) {
       headers: verification.responseHeaders,
     });
   }*/
-  let settle;
+  let settle: SettlePaymentResult | null | undefined = null;
   if (!totalTokens) {
     console.error("Token usage data not available");
   } else {
@@ -136,7 +157,8 @@ export async function POST(request: NextRequest) {
         },
         waitUntil: "confirmed",
       });
-      console.log(`Payment result: ${settle.responseHeaders}`);
+
+      console.log(`Payment result: ${settle?.status}`);
     } catch (error) {
       console.error("Payment settlement failed:", error);
     }
@@ -145,5 +167,8 @@ export async function POST(request: NextRequest) {
   if (json && settle?.status === 200) {
     return Response.json(json, { status: 200 });
   }
-  return Response.json({ message: "Payment settlement failed", raw }, { status: 400 });
+  return Response.json(
+    { message: "Payment settlement failed" },
+    { status: 400 }
+  );
 }
