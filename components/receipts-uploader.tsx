@@ -56,7 +56,7 @@ export default function ReceiptsUploader({
       setJsonResult(null);
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("employee", addr);
+      formData.append("address", addr);
 
       /*const fetchWithPayment = wrapFetchWithPayment(
         fetch,
