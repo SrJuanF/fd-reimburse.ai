@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
-      body: JSON.stringify(body),
+      //body: JSON.stringify(body),
     }
   );
   // 2. Extract the X-PAYMENT value
@@ -92,5 +92,5 @@ export async function POST(request: NextRequest) {
     console.log(reimburseData);
   }
 
-  return Response.json({ ok: true, data, reimburseData, xPayment });
+  return Response.json({ ok: true, data, reimburseData, xPayment, response });
 }
