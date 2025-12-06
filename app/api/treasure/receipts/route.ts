@@ -26,14 +26,21 @@ export async function POST(request: NextRequest) {
     const dataUrl = `data:${mime};base64,${buf.toString("base64")}`;
     body = { imageData: dataUrl };
   }
+  /*
+  `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
+      url
+    )}&method=POST&maxValue=500000&asset=${
+      paymentToken.address
+    }&chainId=eip155:${paymentChain.id}`
+  */
 
   // 1. Get the X-PAYMENT value
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
-    )}&method=POST&maxValue=500000&asset=${
+    )}&method=POST&asset=${
       paymentToken.address
-    }&chainId=eip155:${paymentChain.id}`,
+    }&chainId=${paymentChain.id}`,
     {
       method: "POST",
       headers: {
@@ -45,7 +52,21 @@ export async function POST(request: NextRequest) {
   );
   // 2. Extract the X-PAYMENT value
   const xPayment = response.headers.get("x-payment"); // or from response body if not in headers
-  console.log(xPayment);
+
+  const contentTypeX = response.headers.get("content-type") || "";
+  let dataX: unknown;
+  try {
+    if (contentTypeX.includes("application/json")) {
+      dataX = await response.json();
+    } else {
+      const text = await response.text();
+      dataX = { text };
+    }
+  } catch (err) {
+    const text = await response.text().catch(() => "");
+    dataX = { parseError: String(err), text, status: response.status };
+  }
+
   // 3. Call your API with the X-PAYMENT header
   const auditorResponse = await fetch(`${API_BASE_URL}/api/auditor`, {
     method: "POST",
@@ -70,7 +91,6 @@ export async function POST(request: NextRequest) {
     data = { parseError: String(err), text, status: auditorResponse.status };
   }
 
-  console.log(data);
 
   let reimburseData = false;
 
@@ -92,5 +112,5 @@ export async function POST(request: NextRequest) {
     console.log(reimburseData);
   }
 
-  return Response.json({ ok: true, data, reimburseData, xPayment, response });
+  return Response.json({ ok: true, dataX, data, reimburseData });
 }

@@ -7,13 +7,13 @@ import {
   verifyPayment,
   PaymentArgs,
 } from "thirdweb/x402";
-import { avalancheFuji } from "thirdweb/chains";
 import { serverClient, serverAgentAWalletAddress } from "@/lib/thirdweb.server";
 import {
   MAX_INFERENCE_TOKENS_PER_CALL,
   paymentToken,
   PRICE_PER_INFERENCE_TOKEN_WEI,
   API_BASE_URL,
+  paymentChain,
 } from "@/lib/constants";
 import { type SettlePaymentResult } from "thirdweb/x402";
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     resourceUrl: `${API_BASE_URL}/api/auditor`,
     method: "POST",
     paymentData,
-    network: avalancheFuji,
+    network: paymentChain,
     scheme: "upto",
     payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
     price: {
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
           amount: finalPrice.toString(),
           asset,
         },
-        waitUntil: "confirmed",
+        //waitUntil: "confirmed",
       });
 
       console.log(`Payment result: ${settle?.status}`);
