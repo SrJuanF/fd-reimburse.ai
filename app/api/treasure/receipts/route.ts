@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     body = { imageData: dataUrl };
   }
 
+  // 1. Get the X-PAYMENT value
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
@@ -42,19 +43,31 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     }
   );
+  // 2. Extract the X-PAYMENT value
+  const xPayment = response.headers.get("x-payment"); // or from response body if not in headers
 
-  const contentType = response.headers.get("content-type") || "";
+  // 3. Call your API with the X-PAYMENT header
+  const auditorResponse = await fetch(`${API_BASE_URL}/api/auditor`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(xPayment ? { "x-payment": xPayment } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  const contentType = auditorResponse.headers.get("content-type") || "";
   let data: unknown;
   try {
     if (contentType.includes("application/json")) {
-      data = await response.json();
+      data = await auditorResponse.json();
     } else {
-      const text = await response.text();
+      const text = await auditorResponse.text();
       data = { text };
     }
   } catch (err) {
-    const text = await response.text().catch(() => "");
-    data = { parseError: String(err), text, status: response.status };
+    const text = await auditorResponse.text().catch(() => "");
+    data = { parseError: String(err), text, status: auditorResponse.status };
   }
 
   console.log(data);

@@ -27,6 +27,33 @@ const asset = {
 };
 
 export async function POST(request: NextRequest) {
+
+  // PRE-PAYMENT
+  const paymentData = request.headers.get("x-payment");
+  const paymentArgs: PaymentArgs = {
+    resourceUrl: `${API_BASE_URL}/api/auditor`,
+    method: "POST",
+    paymentData,
+    network: avalancheFuji,
+    scheme: "upto",
+    payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
+    price: {
+      amount: (PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
+      asset,
+    },
+    facilitator: twFacilitator,
+  };
+
+  // verify the signed payment data with maximum payment amount before doing any work
+  const verification = await verifyPayment(paymentArgs);
+
+  if (verification.status !== 200) {
+    return Response.json(verification.responseBody, {
+      status: verification.status,
+      headers: verification.responseHeaders,
+    });
+  }
+
   //IMAGE PRE-PROCESSING
   // Enforce image input: accept multipart/form-data (field: "file") or JSON (fields: "imageUrl" | "imageData")
   let imagePart: Blob | URL | string | undefined;
@@ -116,31 +143,7 @@ export async function POST(request: NextRequest) {
   }
   const totalTokens = result.usage?.totalTokens;
 
-  // PAYMENT
-  const paymentData = request.headers.get("x-payment");
-  const paymentArgs = {
-    resourceUrl: `${API_BASE_URL}/api/auditor`,
-    method: "GET",
-    paymentData,
-    network: avalancheFuji,
-    //scheme: "upto",
-    payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
-    /*price: {
-      amount: (PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
-      asset,
-    },*/
-    facilitator: twFacilitator,
-  };
-
-  // verify the signed payment data with maximum payment amount before doing any work
-  /*const verification = await verifyPayment(paymentArgs);
-
-  if (verification.status !== 200) {
-    return Response.json(verification.responseBody, {
-      status: verification.status,
-      headers: verification.responseHeaders,
-    });
-  }*/
+  //PAYMENT
   let settle: SettlePaymentResult | null | undefined = null;
   if (!totalTokens) {
     console.error("Token usage data not available");
@@ -150,7 +153,6 @@ export async function POST(request: NextRequest) {
     try {
       settle = await settlePayment({
         ...paymentArgs,
-        //scheme: "exact",
         price: {
           amount: finalPrice.toString(),
           asset,
