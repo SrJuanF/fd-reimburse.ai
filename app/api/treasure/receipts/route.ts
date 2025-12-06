@@ -16,7 +16,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const incomingForm = await request.formData();
   const incomingFile = incomingForm.get("file");
-  const incomingAddress = incomingForm.get("address");
+  const incomingAddress = incomingForm.get("employee");
 
   const url = `${API_BASE_URL}/api/auditor`;
   let body: unknown = {};
