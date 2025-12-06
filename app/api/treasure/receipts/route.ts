@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
     }&chainId=eip155:${paymentChain.id}`
   */
 
-  // 1. Get the X-PAYMENT value
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
@@ -49,8 +48,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify(body),
     }
   );
-  // 2. Extract the X-PAYMENT value
-  const xPayment = response.headers.get("x-payment") || ""; // or from response body if not in headers
+
   const data = await response.json();
 
 
@@ -68,13 +66,12 @@ export async function POST(request: NextRequest) {
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
       body: JSON.stringify({
-        address:
-          typeof incomingAddress === "string" ? incomingAddress : undefined,
+        employee: typeof incomingAddress === "string" ? incomingAddress : undefined,
       }),
     });
     reimburseData = await reimburseResponse.json();
     console.log(reimburseData);
   }
 
-  return Response.json({ ok: true, data, reimburseData, xPayment });
+  return Response.json({ ok: true, data, reimburseData});
 }

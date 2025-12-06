@@ -19,7 +19,6 @@ export async function POST(request: NextRequest) {
     return Response.json({ ok: false, error: "employee is required" }, { status: 400 });
   }
 
-
   // 1. Obtén el contrato USDC
   const usdcContract = getContract({
     client: serverClient,
