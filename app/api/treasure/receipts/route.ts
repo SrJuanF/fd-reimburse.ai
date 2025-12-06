@@ -44,30 +44,17 @@ export async function POST(request: NextRequest) {
     {
       method: "POST",
       headers: {
-        //"Content-Type": "application/json",
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
-      /*body: JSON.stringify({
-        scheme: "upto",
-        // ...any other required fields
-      }),*/
+      body: JSON.stringify(body),
     }
   );
   // 2. Extract the X-PAYMENT value
   const xPayment = response.headers.get("x-payment") || ""; // or from response body if not in headers
-  const dataX = await response.json();
+  const data = await response.json();
 
-  // 3. Call your API with the X-PAYMENT header
-  const auditorResponse = await fetch(`${API_BASE_URL}/api/auditor`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(dataX ? { "x-payment": dataX } : {}),
-    },
-    body: JSON.stringify(body),
-  });
 
-  let data = await auditorResponse.json();
+  //let data = await auditorResponse.json();
 
   let reimburseData = false;
 
@@ -89,5 +76,5 @@ export async function POST(request: NextRequest) {
     console.log(reimburseData);
   }
 
-  return Response.json({ ok: true, dataX, data, reimburseData });
+  return Response.json({ ok: true, data, reimburseData, xPayment });
 }
