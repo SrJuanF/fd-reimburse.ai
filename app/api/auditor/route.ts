@@ -118,29 +118,29 @@ export async function POST(request: NextRequest) {
 
   // PAYMENT
   const paymentData = request.headers.get("x-payment");
-  const paymentArgs: PaymentArgs = {
+  const paymentArgs = {
     resourceUrl: `${API_BASE_URL}/api/auditor`,
     method: "GET",
     paymentData,
     network: avalancheFuji,
-    scheme: "upto",
+    //scheme: "upto",
     payTo: process.env.THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS!,
-    price: {
+    /*price: {
       amount: (PRICE_PER_INFERENCE_TOKEN_WEI * MAX_INFERENCE_TOKENS_PER_CALL).toString(),
       asset,
-    },
+    },*/
     facilitator: twFacilitator,
   };
 
   // verify the signed payment data with maximum payment amount before doing any work
-  const verification = await verifyPayment(paymentArgs);
+  /*const verification = await verifyPayment(paymentArgs);
 
   if (verification.status !== 200) {
     return Response.json(verification.responseBody, {
       status: verification.status,
       headers: verification.responseHeaders,
     });
-  }
+  }*/
   let settle: SettlePaymentResult | null | undefined = null;
   if (!totalTokens) {
     console.error("Token usage data not available");
@@ -169,6 +169,6 @@ export async function POST(request: NextRequest) {
   }
   return Response.json(
     { message: "Payment settlement failed", settle },
-    { status: 400 },
+    { status: 400 }
   );
 }
