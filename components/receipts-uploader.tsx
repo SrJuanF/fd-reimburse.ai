@@ -77,10 +77,31 @@ export default function ReceiptsUploader({
         throw new Error(text || "Failed to upload receipt");
       }
 
-      const data = await res.json();
-      setJsonResult(data);
-      //console.log(data);
-      toast.success("Auditor completed");
+      const json = await res.json();
+      setJsonResult(json);
+      const reimbursementValid = Boolean(json?.data?.reimbursementValid);
+      const decisionReason =
+        typeof json?.data?.decisionReason === "string"
+          ? json.data.decisionReason
+          : "";
+      const paidOk = Boolean(json?.reimburseData?.ok);
+      const txHash =
+        typeof json?.reimburseData?.transactionHash === "string"
+          ? json.reimburseData.transactionHash
+          : "";
+
+      toast.success(
+        `${reimbursementValid ? "Approved" : "Rejected"}${
+          decisionReason ? ": " + decisionReason : ""
+        }`
+      );
+      if (paidOk || txHash) {
+        toast.message(
+          `${paidOk ? "Paid" : "Not Paid"}${
+            txHash ? ` • ${txHash.slice(0, 10)}…${txHash.slice(-6)}` : ""
+          }`
+        );
+      }
 
       setFile(null);
       setPreviewUrl(null);

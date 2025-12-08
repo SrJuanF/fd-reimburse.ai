@@ -9,8 +9,22 @@ import { paymentToken, paymentChain, API_BASE_URL } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
+type ReceiptHistoryItem = {
+  id: string;
+  employee?: string;
+  fileName?: string;
+  size?: number;
+  reimbursementValid: boolean;
+  decisionReason?: string;
+  ok: boolean;
+  transactionHash?: string;
+  timestamp: number;
+};
+
+const RECEIPT_HISTORY: ReceiptHistoryItem[] = [];
+
 export async function GET() {
-  return Response.json({ ok: true });
+  return Response.json({ receipts: RECEIPT_HISTORY });
 }
 
 export async function POST(request: NextRequest) {
@@ -37,9 +51,9 @@ export async function POST(request: NextRequest) {
   const response = await fetch(
     `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
       url
-    )}&method=POST&maxValue=500000&asset=${paymentToken.address}&chainId=eip155:${
-      paymentChain.id
-    }`,
+    )}&method=POST&maxValue=500000&asset=${
+      paymentToken.address
+    }&chainId=eip155:${paymentChain.id}`,
     {
       method: "POST",
       headers: {
@@ -51,10 +65,9 @@ export async function POST(request: NextRequest) {
 
   const data = await response.json();
 
-
   //let data = await auditorResponse.json();
 
-  let reimburseData = false;
+  let reimburseData: any = false;
 
   if (data && response.status === 200) {
     const urlReimburse = `${API_BASE_URL}/api/treasure`;
@@ -66,12 +79,47 @@ export async function POST(request: NextRequest) {
         "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
       },
       body: JSON.stringify({
-        employee: typeof incomingAddress === "string" ? incomingAddress : undefined,
+        employee:
+          typeof incomingAddress === "string" ? incomingAddress : undefined,
       }),
     });
     reimburseData = await reimburseResponse.json();
     console.log(reimburseData);
   }
 
-  return Response.json({ ok: true, data, reimburseData});
+  try {
+    const fileName =
+      incomingFile && typeof (incomingFile as File).name === "string"
+        ? (incomingFile as File).name
+        : undefined;
+    const size =
+      incomingFile && typeof (incomingFile as File).size === "number"
+        ? (incomingFile as File).size
+        : undefined;
+    const reimbursementValid = Boolean((data as any)?.reimbursementValid);
+    const decisionReason =
+      typeof (data as any)?.decisionReason === "string"
+        ? (data as any).decisionReason
+        : undefined;
+    const ok = Boolean(reimburseData?.ok);
+    const transactionHash =
+      typeof reimburseData?.transactionHash === "string"
+        ? reimburseData.transactionHash
+        : undefined;
+
+    RECEIPT_HISTORY.unshift({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      employee:
+        typeof incomingAddress === "string" ? incomingAddress : undefined,
+      fileName,
+      size,
+      reimbursementValid,
+      decisionReason,
+      ok,
+      transactionHash,
+      timestamp: Date.now(),
+    });
+  } catch {}
+
+  return Response.json({ ok: true, data, reimburseData });
 }
