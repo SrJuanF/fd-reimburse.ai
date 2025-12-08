@@ -78,6 +78,19 @@ export default function ReceiptsUploader({
       }
 
       const json = await res.json();
+      if (
+        json &&
+        typeof json === "object" &&
+        "ok" in json &&
+        (json as any).ok === false
+      ) {
+        const err =
+          typeof (json as any).error === "string"
+            ? (json as any).error
+            : "Upload failed";
+        toast.error(err);
+        return;
+      }
       setJsonResult(json);
       const reimbursementValid = Boolean(json?.data?.reimbursementValid);
       const decisionReason =

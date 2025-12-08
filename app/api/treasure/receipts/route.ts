@@ -23,20 +23,102 @@ type ReceiptHistoryItem = {
 
 const RECEIPT_HISTORY: ReceiptHistoryItem[] = [];
 
+function isEvmAddress(s: unknown): s is string {
+  return typeof s === "string" && /^0x[0-9a-fA-F]{40}$/.test(s);
+}
+
+function validateIncomingForm(form: FormData) {
+  const file = form.get("file");
+  const employee = form.get("employee");
+  if (!(file instanceof Blob)) {
+    throw new Error("Invalid or missing file");
+  }
+  const type = (file as File).type || "";
+  if (!type.startsWith("image/")) {
+    throw new Error("File must be an image");
+  }
+  if (!isEvmAddress(employee)) {
+    throw new Error("Invalid employee address");
+  }
+  return { file: file as File, employee };
+}
+
+function appendReceiptHistory(
+  incomingFile: File | Blob | null,
+  incomingAddress: unknown,
+  data: unknown,
+  reimburseData: unknown
+) {
+  const fileName =
+    incomingFile && typeof (incomingFile as File).name === "string"
+      ? (incomingFile as File).name
+      : undefined;
+  const size =
+    incomingFile && typeof (incomingFile as File).size === "number"
+      ? (incomingFile as File).size
+      : undefined;
+  const reimbursementValid = Boolean((data as any)?.reimbursementValid);
+  const decisionReason =
+    typeof (data as any)?.decisionReason === "string"
+      ? (data as any).decisionReason
+      : undefined;
+  const ok = Boolean((reimburseData as any)?.ok);
+  const transactionHash =
+    typeof (reimburseData as any)?.transactionHash === "string"
+      ? (reimburseData as any).transactionHash
+      : undefined;
+
+  const record: ReceiptHistoryItem = {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    employee: isEvmAddress(incomingAddress) ? incomingAddress : undefined,
+    fileName,
+    size,
+    reimbursementValid,
+    decisionReason,
+    ok,
+    transactionHash,
+    timestamp: Date.now(),
+  };
+
+  RECEIPT_HISTORY.unshift(record);
+  return record;
+}
+
+function onSuccess(record: ReceiptHistoryItem) {
+  return record;
+}
+
+function onError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return { error: message };
+}
+
 export async function GET() {
   return Response.json({ receipts: RECEIPT_HISTORY });
 }
 
 export async function POST(request: NextRequest) {
   const incomingForm = await request.formData();
-  const incomingFile = incomingForm.get("file");
-  const incomingAddress = incomingForm.get("employee");
+  let validated: { file: File; employee: string };
+  try {
+    validated = validateIncomingForm(incomingForm);
+  } catch (e) {
+    const err = onError(e);
+    return Response.json({ ok: false, ...err }, { status: 400 });
+  }
+
+  if (!process.env.THIRDWEB_SECRET_KEY) {
+    return Response.json(
+      { ok: false, error: "Missing THIRDWEB_SECRET_KEY" },
+      { status: 500 }
+    );
+  }
 
   const url = `${API_BASE_URL}/api/auditor`;
   let body: unknown = {};
-  if (incomingFile instanceof Blob) {
-    const buf = Buffer.from(await (incomingFile as Blob).arrayBuffer());
-    const mime = (incomingFile as File).type || "application/octet-stream";
+  if (validated.file instanceof Blob) {
+    const buf = Buffer.from(await (validated.file as Blob).arrayBuffer());
+    const mime = (validated.file as File).type || "application/octet-stream";
     const dataUrl = `data:${mime};base64,${buf.toString("base64")}`;
     body = { imageData: dataUrl };
   }
@@ -48,78 +130,65 @@ export async function POST(request: NextRequest) {
     }&chainId=eip155:${paymentChain.id}`
   */
 
-  const response = await fetch(
-    `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
-      url
-    )}&method=POST&maxValue=500000&asset=${
-      paymentToken.address
-    }&chainId=eip155:${paymentChain.id}`,
-    {
-      method: "POST",
-      headers: {
-        "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
-      },
-      body: JSON.stringify(body),
-    }
-  );
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://api.thirdweb.com/v1/payments/x402/fetch?from=${serverCompanyWalletAddress}&url=${encodeURIComponent(
+        url
+      )}&method=POST&maxValue=500000&asset=${
+        paymentToken.address
+      }&chainId=eip155:${paymentChain.id}`,
+      {
+        method: "POST",
+        headers: {
+          "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
+        },
+        body: JSON.stringify(body),
+      }
+    );
+  } catch (e) {
+    const err = onError(e);
+    return Response.json({ ok: false, ...err }, { status: 502 });
+  }
 
   const data = await response.json();
-
-  //let data = await auditorResponse.json();
 
   let reimburseData: any = false;
 
   if (data && response.status === 200) {
     const urlReimburse = `${API_BASE_URL}/api/treasure`;
-
-    const reimburseResponse = await fetch(urlReimburse, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
-      },
-      body: JSON.stringify({
-        employee:
-          typeof incomingAddress === "string" ? incomingAddress : undefined,
-      }),
-    });
-    reimburseData = await reimburseResponse.json();
+    try {
+      const reimburseResponse = await fetch(urlReimburse, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
+        },
+        body: JSON.stringify({ employee: validated.employee }),
+      });
+      reimburseData = await reimburseResponse.json();
+    } catch (e) {
+      const err = onError(e);
+      return Response.json({ ok: false, data, ...err }, { status: 502 });
+    }
     console.log(reimburseData);
   }
 
   try {
-    const fileName =
-      incomingFile && typeof (incomingFile as File).name === "string"
-        ? (incomingFile as File).name
-        : undefined;
-    const size =
-      incomingFile && typeof (incomingFile as File).size === "number"
-        ? (incomingFile as File).size
-        : undefined;
-    const reimbursementValid = Boolean((data as any)?.reimbursementValid);
-    const decisionReason =
-      typeof (data as any)?.decisionReason === "string"
-        ? (data as any).decisionReason
-        : undefined;
-    const ok = Boolean(reimburseData?.ok);
-    const transactionHash =
-      typeof reimburseData?.transactionHash === "string"
-        ? reimburseData.transactionHash
-        : undefined;
-
-    RECEIPT_HISTORY.unshift({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      employee:
-        typeof incomingAddress === "string" ? incomingAddress : undefined,
-      fileName,
-      size,
-      reimbursementValid,
-      decisionReason,
-      ok,
-      transactionHash,
-      timestamp: Date.now(),
-    });
-  } catch {}
+    const record = appendReceiptHistory(
+      validated.file,
+      validated.employee,
+      data,
+      reimburseData
+    );
+    onSuccess(record);
+  } catch (e) {
+    const err = onError(e);
+    return Response.json(
+      { ok: false, data, reimburseData, ...err },
+      { status: 500 }
+    );
+  }
 
   return Response.json({ ok: true, data, reimburseData });
 }

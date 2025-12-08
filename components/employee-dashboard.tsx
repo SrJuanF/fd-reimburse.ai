@@ -142,7 +142,7 @@ export default function EmployeeDashboard() {
                     </span>
                     {r.decisionReason ? (
                       <span
-                        className="text-xs dark:text-zinc-400 text-zinc-600 truncate"
+                        className="text-xs dark:text-zinc-400 text-zinc-600 whitespace-pre-wrap"
                         title={r.decisionReason}
                       >
                         {r.decisionReason}
