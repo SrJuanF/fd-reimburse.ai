@@ -56,7 +56,7 @@ export default function ReceiptsUploader({
       setJsonResult(null);
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("address", addr);
+      formData.append("employee", addr);
 
       /*const fetchWithPayment = wrapFetchWithPayment(
         fetch,
@@ -79,7 +79,7 @@ export default function ReceiptsUploader({
 
       const data = await res.json();
       setJsonResult(data);
-      console.log(data);
+      //console.log(data);
       toast.success("Auditor completed");
 
       setFile(null);
