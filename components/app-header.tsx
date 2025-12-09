@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { SignInButton } from "./sign-in-button";
+import logo from "@/app/reimburse-removebg-preview.png";
 
 export default function AppHeader() {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "/";
@@ -17,7 +18,7 @@ export default function AppHeader() {
               target="_blank"
               href={baseUrl}
             >
-              <Image src="/thirdweb.png" alt="Thirdweb Logo" width={48} height={48} />
+              <Image src={logo} alt="Reimburse.ai Logo" width={48} height={48} />
             </Link>
             <h3 className="text-xl font-bold">Reimburse.ai</h3>
           </span>
