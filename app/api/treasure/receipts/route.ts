@@ -103,8 +103,8 @@ export async function POST(request: NextRequest) {
   try {
     validated = validateIncomingForm(incomingForm);
   } catch (e) {
-    const err = onError(e);
-    return Response.json({ ok: false, ...err }, { status: 400 });
+    const error = onError(e);
+    return Response.json({ ok: false, ...error }, { status: 400 });
   }
 
   if (!process.env.THIRDWEB_SECRET_KEY) {
@@ -147,15 +147,16 @@ export async function POST(request: NextRequest) {
       }
     );
   } catch (e) {
-    const err = onError(e);
-    return Response.json({ ok: false, ...err }, { status: 502 });
+    const error = onError(e);
+    return Response.json({ ok: false, ...error }, { status: 502 });
   }
 
   const data = await response.json();
+  const reimbursementValid = Boolean((data as any)?.reimbursementValid);
 
-  let reimburseData: any = false;
+  let reimburseData: any = { ok: false };
 
-  if (data && response.status === 200) {
+  if (data && response.status === 200 && reimbursementValid) {
     const urlReimburse = `${API_BASE_URL}/api/treasure`;
     try {
       const reimburseResponse = await fetch(urlReimburse, {
@@ -168,10 +169,15 @@ export async function POST(request: NextRequest) {
       });
       reimburseData = await reimburseResponse.json();
     } catch (e) {
-      const err = onError(e);
-      return Response.json({ ok: false, data, ...err }, { status: 502 });
+      const error = onError(e);
+      return Response.json(
+        { ok: false, data, ...error },
+        { status: 502 }
+      );
     }
-    console.log(reimburseData);
+    //console.log(reimburseData)
+  } else {
+    reimburseData = { ok: false, error: "Reimbursement not valid" };
   }
 
   try {
@@ -183,12 +189,12 @@ export async function POST(request: NextRequest) {
     );
     onSuccess(record);
   } catch (e) {
-    const err = onError(e);
+    const error = onError(e);
     return Response.json(
-      { ok: false, data, reimburseData, ...err },
+      { ok: false, data, reimburseData, ...error },
       { status: 500 }
     );
   }
 
-  return Response.json({ ok: true, data, reimburseData });
+  return Response.json({ ok: true, data, reimburseData }, { status: 201 });
 }
