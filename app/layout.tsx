@@ -1,18 +1,21 @@
 import { Toaster } from "sonner";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import Link from "next/link";
 import type { Metadata } from "next";
 
 import "./globals.css";
 import { ThirdwebProvider } from "thirdweb/react";
-import Image from "next/image";
 import AppHeader from "@/components/app-header";
 
 export const metadata: Metadata = {
   title: "Reimburse.ai",
   description:
     "This is a preview of using reasoning models with Next.js and the AI SDK.",
+  icons: {
+    icon: "/reimburse-removebg-preview.png",
+    shortcut: "/reimburse-removebg-preview.png",
+    //apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -22,7 +25,11 @@ export default function RootLayout({
 }>) {
   return (
     <ThirdwebProvider>
-      <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
+      <html
+        lang="en"
+        className={`${GeistSans.variable} ${GeistMono.variable}`}
+        suppressHydrationWarning
+      >
         <body>
           <AppHeader />
           <Toaster position="top-center" />

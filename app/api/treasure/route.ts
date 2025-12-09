@@ -18,6 +18,10 @@ export async function POST(request: NextRequest) {
   if (!employee || !employee.startsWith("0x") || employee.length !== 42) {
     return Response.json({ ok: false, error: "employee is required" }, { status: 400 });
   }
+  const amount = typeof body?.amount === "number" ? body.amount : undefined;
+  if (!amount || amount <= 0) {
+    return Response.json({ ok: false, error: "amount is required" }, { status: 400 });
+  }
 
   // 1. Obtén el contrato USDC
   const usdcContract = getContract({
@@ -30,7 +34,7 @@ export async function POST(request: NextRequest) {
   const transaction = transfer({
     contract: usdcContract,
     to: employee,
-    amount: 0.01,
+    amount: amount,
   });
 
   // 3. Envía la transacción

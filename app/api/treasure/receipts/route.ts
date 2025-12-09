@@ -153,31 +153,32 @@ export async function POST(request: NextRequest) {
 
   const data = await response.json();
   const reimbursementValid = Boolean((data as any)?.reimbursementValid);
+  const totalAmount = Number((data as any)?.total || 0);
 
-  let reimburseData: any = { ok: false };
+  let reimburseData: any = { ok: false, error: "" };
 
-  if (data && response.status === 200 && reimbursementValid) {
-    const urlReimburse = `${API_BASE_URL}/api/treasure`;
-    try {
-      const reimburseResponse = await fetch(urlReimburse, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
-        },
-        body: JSON.stringify({ employee: validated.employee }),
-      });
-      reimburseData = await reimburseResponse.json();
-    } catch (e) {
-      const error = onError(e);
-      return Response.json(
-        { ok: false, data, ...error },
-        { status: 502 }
-      );
+  if (data && response.status === 200) {
+    if (!reimbursementValid) {
+      reimburseData = { ok: false, error: "Reimbursement not valid" };
+    } else if (totalAmount === 0) {
+      reimburseData = { ok: false, error: "Total amount is 0 or invalid"};
+    } else {
+      const urlReimburse = `${API_BASE_URL}/api/treasure`;
+      try {
+        const reimburseResponse = await fetch(urlReimburse, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-secret-key": process.env.THIRDWEB_SECRET_KEY!,
+          },
+          body: JSON.stringify({ employee: validated.employee, amount: totalAmount }),
+        });
+        reimburseData = await reimburseResponse.json();
+      } catch (e) {
+        const error = onError(e);
+        return Response.json({ ok: false, reimbursementValid, ...error }, { status: 502 });
+      }
     }
-    //console.log(reimburseData)
-  } else {
-    reimburseData = { ok: false, error: "Reimbursement not valid" };
   }
 
   try {
@@ -191,7 +192,7 @@ export async function POST(request: NextRequest) {
   } catch (e) {
     const error = onError(e);
     return Response.json(
-      { ok: false, data, reimburseData, ...error },
+      { ok: false, reimbursementValid, reimburseData, ...error },
       { status: 500 }
     );
   }

@@ -118,7 +118,7 @@ export default function ReceiptsUploader({
       }
 
       const json = await res.json();
-
+      
       onNotification(json);
 
       setFile(null);
