@@ -118,7 +118,7 @@ export default function ReceiptsUploader({
       }
 
       const json = await res.json();
-      
+
       onNotification(json);
 
       setFile(null);
@@ -248,13 +248,13 @@ export default function ReceiptsUploader({
           </button>
         </div>
       </div>
-      {jsonResult !== null && (
+      {/*jsonResult !== null && (
         <div className="mt-6 w-full max-w-xl px-4">
           <div className="p-4 rounded-2xl dark:bg-zinc-800 bg-zinc-100 text-sm whitespace-pre-wrap">
             {JSON.stringify(jsonResult, null, 2)}
           </div>
         </div>
-      )}
+      )*/}
     </div>
   );
 }

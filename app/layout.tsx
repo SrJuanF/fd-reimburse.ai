@@ -6,15 +6,15 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThirdwebProvider } from "thirdweb/react";
 import AppHeader from "@/components/app-header";
+import reimburseLogo from "./reimburse-removebg-preview.png";
 
 export const metadata: Metadata = {
   title: "Reimburse.ai",
   description:
-    "This is a preview of using reasoning models with Next.js and the AI SDK.",
+    "This is a preview of using reasoning models with Auditor Receipts and Company Treasure.",
   icons: {
-    icon: "/reimburse-removebg-preview.png",
-    shortcut: "/reimburse-removebg-preview.png",
-    //apple: "/apple-touch-icon.png",
+    icon: reimburseLogo.src,
+    shortcut: reimburseLogo.src,
   },
 };
 
