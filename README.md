@@ -1,6 +1,9 @@
+# Reimburse.ai — Reembolsos instantáneos con auditoría y pagos onchain
+
 <p align="center">
-  <img src="app/reimburse architecture.jpg" alt="Reimburse.ai" width="420">
+  <img src="app/reimburse-architecture.jpg" alt="Reimburse.ai" width="420">
 </p>
+
 ## Unified Business Model
 
 - Core service: receipt auditing and reimbursement orchestration using Agent A (`app/api/auditor/route.ts`) and Agent B (`app/api/treasure/route.ts`).
@@ -82,42 +85,6 @@
 - Add credit limit and advance decisioning to the `treasure/receipts` path, including a receivables ledger and settlement scheduler.
 - Expose policy controls (amount caps, categories, vendor lists) in a company admin UI and enforce them in Agent A’s system prompt/pipeline.
 
-## Currently Features
-
-### Secure Payment Flow with x402
-
-- **Pre-verification**: Verify signed payment data before processing requests
-- **Maximum Amount Protection**: Set a max token limit to cap potential costs
-- **Post-inference Settlement**: Charge only for actual tokens used
-- **Onchain Payments**: Paid in the token and chain of your choice with gasless transactions
-
-## How It Works
-
-This template demonstrates a complete pay-per-token flow:
-
-1. **Payment Verification** (`verifyPayment`)
-
-   - User signs payment authorization with maximum amount
-   - Server verifies signature before processing request
-   - Prevents unauthorized inference calls
-
-2. **AI Inference** (`streamText`)
-
-   - Process chat request and stream AI response to user
-   - Non-blocking payment flow ensures optimal UX
-   - Extract token usage via `onFinish` callback
-
-3. **Asynchronous Settlement** (`settlePayment`)
-
-   - Calculate final price: `PRICE_PER_INFERENCE_TOKEN_WEI × totalTokens`
-   - Settle payment on-chain after streaming completes
-   - Only charge for actual tokens consumed
-
-4. **Cost Display**
-   - Stream token metadata to frontend via `messageMetadata`
-   - Display cost card below each AI response
-   - Full transparency for users
-
 ### Key Code Snippets
 
 **Backend - Token Extraction & Payment Settlement** (`app/api/chat/route.ts`):
@@ -131,19 +98,12 @@ const stream = streamText({
 
     await settlePayment({
       facilitator: twFacilitator,
-      network: arbitrum,
+      network: avalancheFuji,
       price: { amount: finalPrice.toString(), asset: usdcAsset },
       // ... other params
     });
   },
 });
-```
-
-**Frontend - Cost Display** (`components/messages.tsx`):
-
-```typescript
-const totalTokens = metadata?.totalTokens;
-const costInUsdc = (PRICE_PER_INFERENCE_TOKEN_WEI * totalTokens) / 10 ** 6;
 ```
 
 ### Tech Stack
@@ -158,10 +118,14 @@ const costInUsdc = (PRICE_PER_INFERENCE_TOKEN_WEI * totalTokens) / 10 ** 6;
 
 You will need the following API keys and environment variables:
 
-- **AI Provider API Keys**: Anthropic, Fireworks, or Groq (depending on which model you want to use)
+- **AI Provider**: OpenAI (`gpt-4o`)
 - **thirdweb Credentials**: For x402 payment infrastructure
   - Get your secret key from [thirdweb dashboard](https://thirdweb.com/dashboard)
   - Client ID for frontend wallet connection
+  - Company server wallet address (USDC payouts)
+  - Agent A server wallet address (facilitator)
+  - Merchant wallet address (payTo)
+  - Public API base URL
 
 ### Setup
 
@@ -169,7 +133,7 @@ You will need the following API keys and environment variables:
 
 ```bash
 git clone <repository-url>
-cd x402-ai-inference
+cd fd-reimburse.ai
 ```
 
 2. **Install dependencies**
@@ -183,14 +147,18 @@ pnpm install
 Create a `.env.local` file in the root directory:
 
 ```env
-# AI Provider API Keys
-ANTHROPIC_API_KEY=your_anthropic_api_key
+# AI Provider
 OPENAI_API_KEY=your_openai_api_key
 
 # thirdweb Configuration
-THIRDWEB_SECRET_KEY=your_thirdweb_secret_key
-THIRDWEB_SERVER_WALLET_ADDRESS=your_server_wallet_address
 NEXT_PUBLIC_THIRDWEB_CLIENT_ID=your_thirdweb_client_id
+THIRDWEB_SECRET_KEY=your_thirdweb_secret_key
+THIRDWEB_COMPANY_SERVER_WALLET_ADDRESS=your_company_server_wallet_address
+THIRDWEB_AGENTA_SERVER_WALLET_ADDRESS=your_agent_a_server_wallet_address
+THIRDWEB_AGENTA_MERCHANT_WALLET_ADDRESS=your_merchant_wallet_address
+
+# Base URL
+NEXT_PUBLIC_API_BASE_URL=https://your-app-name
 ```
 
 > **Important**: Never commit your `.env.local` file. It contains secrets that will allow others to control access to your AI provider and thirdweb accounts.
@@ -201,10 +169,12 @@ Edit `lib/constants.ts` to adjust your pricing:
 
 ```typescript
 export const PRICE_PER_INFERENCE_TOKEN_WEI = 1; // 0.000001 USDC per token
-export const MAX_INFERENCE_TOKENS_PER_CALL = 1000000; // 1M tokens max
+export const MAX_INFERENCE_TOKENS_PER_CALL = 10000; // 10k tokens max
+export const paymentChain = avalancheFuji; // Avalanche Fuji testnet
+export const paymentToken = getDefaultToken(paymentChain, "USDC")!; // USDC
 ```
 
-You can also change the chain and token used for the payment in that file.
+This project uses Avalanche Fuji and USDC by default. You can change the chain and token in that file.
 
 5. **Start the development server**
 
@@ -216,14 +186,12 @@ Your app should now be running on [localhost:3000](http://localhost:3000/).
 
 ### Testing Payments
 
-1. Connect a wallet with USDC on Arbitrum
-2. Send a chat message to trigger an AI inference
-3. The app will:
-   - Verify your payment signature
-   - Stream the AI response
-   - Settle payment based on actual tokens used
-   - Display the cost below the response
+1. Connect a wallet with USDC on Avalanche Fuji (testnet)
+2. Upload a receipt image of your expense
+
+You can view transactions on Snowtrace.
 
 ## Learn More
 
-- [x402 thirdweb Documentation](https://portal.thirdweb.com/x402)
+- [Reimburse.ai Documentation](https://docs.google.com/document/d/1mBY_UQMdk58kroRE4Oup8vqoSRfGjsz7uKSfCImYDeg/edit?usp=sharing)
+- [Reimburse.ai Video Demo](https://www.youtube.com/watch?v=wUI3uLoAJwY)
