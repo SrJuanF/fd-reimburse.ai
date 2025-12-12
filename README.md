@@ -1,4 +1,4 @@
-# Reimburse.ai — Reembolsos instantáneos con auditoría y pagos onchain
+# Reimburse.ai — Instant reimbursements with auditing and onchain payments
 
 <p align="center">
   <img src="app/reimburse-architecture.jpg" alt="Reimburse.ai" width="420">
