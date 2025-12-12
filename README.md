@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/reimburse-removebg-preview.png" alt="Reimburse.ai" width="420">
+  <img src="app/reimburse architecture.jpg" alt="Reimburse.ai" width="420">
 </p>
 ## Unified Business Model
 
