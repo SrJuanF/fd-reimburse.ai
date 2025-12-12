@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="app/reimburse-removebg-preview.png" alt="Reimburse.ai" width="420">
+</p>
 ## Unified Business Model
 
 - Core service: receipt auditing and reimbursement orchestration using Agent A (`app/api/auditor/route.ts`) and Agent B (`app/api/treasure/route.ts`).
